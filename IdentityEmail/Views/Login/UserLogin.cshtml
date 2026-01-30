@@ -1,0 +1,22 @@
+﻿@model IdentityEmail.Dtos.LoginUserDto
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<form method="post">
+    <div class="container">
+        <br /><br />
+        <h3>Giriş Sayfası</h3>
+        <label>Kullanıcı Adınız :</label>
+        <input type="text" asp-for="Username" class="form-control" />
+        <br />
+        <label>Şifreniz :</label>
+        <input type="text" required asp-for="Password" class="form-control" />
+        <br />
+        <button class="btn btn-info">Giriş Yap</button>
+    </div>
+</form>

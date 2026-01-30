@@ -31,9 +31,20 @@ namespace IdentityEmail.Controllers
                 Email = createUserRegisterDto.Email
             };
 
-            await _userManager.CreateAsync(appUser, createUserRegisterDto.Password);
+            var result = await _userManager.CreateAsync(appUser, createUserRegisterDto.Password);
+            if (result.Succeeded)
+            {
+                return RedirectToAction("UserLogin", "Login");
+            }
+            else
+            {
+                foreach (var item in result.Errors)
+                {
+                    ModelState.AddModelError("", item.Description);
+                }
+            }
 
-            return RedirectToAction("UserList");
+            return View();
         }
     }
 }

@@ -1,6 +1,15 @@
+using IdentityEmail.Context;
+using IdentityEmail.Entities;
+using IdentityEmail.Models;
+using Microsoft.AspNetCore.Identity;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddDbContext<EmailContext>();
+
+builder.Services.AddIdentity<AppUser, IdentityRole>().AddEntityFrameworkStores<EmailContext>().AddErrorDescriber<CustomIdentityValidator>();
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -15,6 +24,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

@@ -10,5 +10,8 @@ namespace IdentityEmail.Context
         {
             optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;initial catalog=IdentityEmailDb;integrated security=true; trust server certificate=true;");
         }
+
+        public DbSet<Message> Messages { get; set; }
+
     }
 }
