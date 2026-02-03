@@ -24,7 +24,7 @@ namespace IdentityEmail.Controllers
             var result=await _signInManager.PasswordSignInAsync(loginUserDto.Username, loginUserDto.Password, false, false);
             if (result.Succeeded)
             {
-                return RedirectToAction("Profile", "UserProfile");
+                return RedirectToAction("UserProfile", "Profile");
             }
             return View();
         }
