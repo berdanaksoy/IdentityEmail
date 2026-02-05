@@ -20,6 +20,8 @@ namespace IdentityEmail.Controllers
             return View();
         }
 
+        Random rnd = new Random();
+        int x = rnd.Next(100000,1000000);
         [HttpPost]
         public async Task<IActionResult> CreateUser(CreateUserRegisterDto createUserRegisterDto)
         {
@@ -28,7 +30,8 @@ namespace IdentityEmail.Controllers
                 Name = createUserRegisterDto.Name,
                 Surname = createUserRegisterDto.Surname,
                 UserName = createUserRegisterDto.Username,
-                Email = createUserRegisterDto.Email
+                Email = createUserRegisterDto.Email,
+                ConfirmCode = x.ToString()
             };
 
             var result = await _userManager.CreateAsync(appUser, createUserRegisterDto.Password);

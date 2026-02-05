@@ -8,5 +8,6 @@ namespace IdentityEmail.Entities
         public string? Surname { get; set; }
         public string? ImageUrl { get; set; }
         public string? About { get; set; }
+        public string ConfirmCode { get; set; }
     }
 }
