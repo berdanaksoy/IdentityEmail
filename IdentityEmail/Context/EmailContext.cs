@@ -12,6 +12,9 @@ namespace IdentityEmail.Context
         }
 
         public DbSet<Message> Messages { get; set; }
-
+        public DbSet<UserMessageBox> UserMessageBoxes { get; set; }
+        public DbSet<MessageCategory> MessageCategory { get; set; }
+        public DbSet<SpamSender> SpamSenders { get; set; }
+        public DbSet<UserContactCategory> UserContactCategories { get; set; }
     }
 }

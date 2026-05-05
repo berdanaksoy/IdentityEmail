@@ -1,33 +1,372 @@
-﻿@model List<IdentityEmail.Entities.Message>
+﻿@model List<IdentityEmail.Dtos.InboxDto>
 
 @{
-    Layout = null;
+    string currentSearch = ViewBag.Search ?? "";
+    bool isUnreadOnly = ViewBag.UnreadOnly == true;
+    string cf = ViewBag.CurrentFolder ?? "inbox";
+    int? cc = ViewBag.CurrentCategory;
 }
 
-<link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+@section Styles {
+<style>
+    .email-table { width:100%; table-layout:fixed; }
+    .email-table td { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .email-table .chb        { width:40px !important; }
+    .email-table .starred    { width:36px !important; }
+    .email-table .user-image { width:46px !important; }
+    .email-table .user-name  { width:200px !important; }
+    .email-table .time       { width:190px !important; text-align:right; white-space:nowrap !important; }
+    .email-table .max-texts  { width:auto !important; }
+    .email-table tbody tr { border-left:3px solid transparent !important; }
+    .email-table tbody tr.unread { border-left:3px solid #e85d8e !important; background-color:#fff8fb !important; }
+    .email-table tbody tr td:first-child { padding-left:12px !important; }
+    .email-table .custom-control { padding-left:1.5rem !important; margin:0 !important; }
+    .email-table tr.unread .user-name h6,
+    .email-table tr.unread .max-texts span { font-weight:700; color:#222; }
+    .email-table tr:not(.unread) .user-name h6,
+    .email-table tr:not(.unread) .max-texts span { font-weight:400; color:#6c757d; }
+</style>
+}
 
-<div class="container">
-    <br /><br />
-    <h3>Gelen Mesaj Listesi</h3>
-    <table class="table table-hover">
-        <tr>
-            <th>#</th>
-            <th>Gönderici Email</th>
-            <th>Konu</th>
-            <th>Tarih</th>
-            <th>Mesajı Aç</th>
-            <th>Mesajı Sil</th>
-        </tr>
-        @foreach (var item in Model)
+<!-- Toplu İşlem Toolbar -->
+<div id="bulkActionBar" class="p-15 d-none align-items-center flex-wrap"
+     style="gap:8px; background:#fff8fb; border-bottom:1px solid #f0c0d8;">
+    <span id="selectedCount" class="text-muted mr-3">0 mesaj seçili</span>
+
+    @if (cf == "trash")
+    {
+        <button class="btn btn-sm" id="bulkUntrash"
+                style="background:#2ecc71;border-color:#2ecc71;color:#fff;">
+            <i class="fa fa-undo"></i> Çöp Kutusundan Çıkar
+        </button>
+        <button class="btn btn-sm" id="bulkPermanentDelete"
+                style="background:#e74c3c;border-color:#e74c3c;color:#fff;">
+            <i class="fa fa-times-circle"></i> Kalıcı Olarak Sil
+        </button>
+    }
+    else if (cf == "spam")
+    {
+        <button class="btn btn-sm" id="bulkUnspam"
+                style="background:#2ecc71;border-color:#2ecc71;color:#fff;">
+            <i class="fa fa-check"></i> Spam Değil
+        </button>
+        <button class="btn btn-sm" id="bulkTrash"
+                style="background:#e74c3c;border-color:#e74c3c;color:#fff;">
+            <i class="fa fa-trash"></i> Çöp Kutusuna Taşı
+        </button>
+    }
+    else if (cf == "draft" || cf == "sent")
+    {
+        <button class="btn btn-sm" id="bulkTrash"
+                style="background:#e74c3c;border-color:#e74c3c;color:#fff;">
+            <i class="fa fa-trash"></i> Çöp Kutusuna Taşı
+        </button>
+    }
+    else
+    {
+        @if (cf != "starred")
         {
-            <tr>
-                <td>@item.MessageId</td>
-                <td>@item.SenderEmail</td>
-                <td>@item.Subject</td>
-                <td>@item.SendDate</td>
-                <td><a href="/Message/MessageDetail/@item.MessageId" class="btn btn-info">Mesajı Aç</a></td>
-                <td><a href="/Message/MessageDetail/@item.MessageId" class="btn btn-danger">Mesajı Sil</a></td>
-            </tr>
+            <button class="btn btn-sm" id="bulkStar"
+                    style="background:#f1c40f;border-color:#f1c40f;color:#fff;">
+                <i class="fa fa-star"></i> Yıldızla
+            </button>
         }
+
+        <div class="dropdown">
+            <button class="btn btn-sm dropdown-toggle"
+                    style="background:#9b59b6;border-color:#9b59b6;color:#fff;"
+                    data-toggle="dropdown">
+                <i class="fa fa-tag"></i> Kategori Ata
+            </button>
+            <div class="dropdown-menu">
+                @{
+                    var cats = ViewBag.Categories as List<IdentityEmail.Entities.MessageCategory>;
+                }
+                @if (cats != null && cats.Any())
+                {
+                    foreach (var cat in cats)
+                    {
+                        <a class="dropdown-item bulk-categorize" href="javascript:void(0)"
+                           data-category-id="@cat.CategoryId">
+                            <span class="category-dot" style="background:@(cat.Color ?? "#aaa")"></span>
+                            @cat.Name
+                        </a>
+                    }
+                    <div class="dropdown-divider"></div>
+                }
+                <a class="dropdown-item bulk-categorize" href="javascript:void(0)" data-category-id="0">
+                    <i class="fa fa-times mr-1"></i> Kategoriyi Kaldır
+                </a>
+            </div>
+        </div>
+
+        <button class="btn btn-sm" id="bulkMarkRead"
+                style="background:#3498db;border-color:#3498db;color:#fff;">
+            <i class="fa fa-envelope-open"></i> Okundu
+        </button>
+
+        <button class="btn btn-sm" id="bulkMarkUnread"
+                style="background:#2ecc71;border-color:#2ecc71;color:#fff;">
+            <i class="fa fa-envelope"></i> Okunmadı
+        </button>
+
+        <button class="btn btn-sm" id="bulkSpam"
+                style="background:#f39c12;border-color:#f39c12;color:#fff;">
+            <i class="fa fa-ban"></i> Spam'a Al
+        </button>
+
+        <button class="btn btn-sm" id="bulkTrash"
+                style="background:#e74c3c;border-color:#e74c3c;color:#fff;">
+            <i class="fa fa-trash"></i> Çöp Kutusuna Taşı
+        </button>
+    }
+</div>
+
+<!-- Üst Bar -->
+<div class="p-15 d-flex align-items-center flex-wrap" style="gap:8px; border-bottom:1px solid #f5f5f5;">
+    <div class="custom-control custom-checkbox mr-2">
+        <input type="checkbox" class="custom-control-input sl-all" id="cs">
+        <label class="custom-control-label" for="cs">&nbsp;</label>
+    </div>
+
+    <form method="get" action="/Message/Inbox" class="d-flex align-items-center" style="gap:6px;">
+        <input type="hidden" name="folder" value="@cf">
+        @if (cc.HasValue)
+        {
+            <input type="hidden" name="categoryId" value="@cc">
+        }
+        <div class="input-group" style="width:220px;">
+            <input type="text" name="search" value="@currentSearch"
+                   class="form-control form-control-sm" placeholder="Mesajlarda ara...">
+            <div class="input-group-append">
+                <button type="submit" class="btn btn-sm"
+                        style="background-color:#e85d8e;color:#fff;border-color:#e85d8e;">
+                    <i class="fa fa-search"></i>
+                </button>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(currentSearch))
+        {
+            <a href="/Message/Inbox?folder=@cf" class="btn btn-sm btn-outline-danger">
+                <i class="fa fa-times"></i>
+            </a>
+        }
+    </form>
+
+    <div class="custom-control custom-checkbox ml-2">
+        <input type="checkbox" class="custom-control-input" id="unreadOnly"
+               @(isUnreadOnly ? "checked" : "")>
+        <label class="custom-control-label" for="unreadOnly">Sadece okunmayanlar</label>
+    </div>
+
+    <div class="ml-auto d-flex align-items-center" style="gap:6px;">
+        <a href="/Message/Inbox?folder=@cf@(cc.HasValue ? "&categoryId=" + cc : "")"
+           class="btn waves-effect" title="Yenile"
+           style="background:#e85d8e;color:#fff;border-color:#e85d8e;">
+            <i class="fa fa-sync"></i>
+        </a>
+        <div class="btn-group">
+            @if (ViewBag.CurrentPage > 1)
+            {
+                <a href="/Message/Inbox?page=@(ViewBag.CurrentPage - 1)&search=@currentSearch&unreadOnly=@(isUnreadOnly.ToString().ToLower())&folder=@cf@(cc.HasValue ? "&categoryId=" + cc : "")"
+                   class="btn waves-effect" style="background:#e85d8e;color:#fff;border-color:#e85d8e;">
+                    <i class="fa fa-chevron-left"></i>
+                </a>
+            }
+            else
+            {
+                <button class="btn waves-effect" disabled style="background:#f5b8d0;color:#fff;border-color:#f5b8d0;">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+            }
+            @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+            {
+                <a href="/Message/Inbox?page=@(ViewBag.CurrentPage + 1)&search=@currentSearch&unreadOnly=@(isUnreadOnly.ToString().ToLower())&folder=@cf@(cc.HasValue ? "&categoryId=" + cc : "")"
+                   class="btn waves-effect" style="background:#e85d8e;color:#fff;border-color:#e85d8e;">
+                    <i class="fa fa-chevron-right"></i>
+                </a>
+            }
+            else
+            {
+                <button class="btn waves-effect" disabled style="background:#f5b8d0;color:#fff;border-color:#f5b8d0;">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Mesaj Tablosu -->
+<div>
+    <table class="table email-table table-hover v-middle w-100">
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr class="@(!item.IsRead ? "unread" : "")">
+                    <td class="chb">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input sl-one"
+                                   id="cst@(item.MessageId)" data-message-id="@item.MessageId">
+                            <label class="custom-control-label" for="cst@(item.MessageId)">&nbsp;</label>
+                        </div>
+                    </td>
+                    <td class="starred">
+                        @if (cf != "draft" && cf != "spam" && cf != "trash" && cf != "sent")
+                        {
+                            <i class="@(item.IsStarred ? "fas fa-star text-warning" : "far fa-star") star-icon"
+                               data-id="@item.MessageId" style="cursor:pointer;"></i>
+                        }
+                        else
+                        {
+                            <i class="@(item.IsStarred ? "fas fa-star text-warning" : "far fa-star")"
+                               style="color:#ddd;"></i>
+                        }
+                    </td>
+                    <td class="user-image">
+                        <img src="@item.ImageUrl" alt="user" class="rounded-circle" width="30">
+                    </td>
+                    <td class="user-name">
+                        <h6 class="m-b-0">@item.SenderFullname</h6>
+                    </td>
+                    <td class="max-texts">
+                        <a class="link" href="/Message/MessageDetail/@item.MessageId?returnUrl=/Message/Inbox?folder=@(cf)@(cc.HasValue ? "&categoryId=" + cc.Value : "")">
+                            @if (!string.IsNullOrEmpty(item.CategoryName))
+                            {
+                                <span class="label m-r-10"
+                                      style="background:@(item.CategoryColor ?? "#aaa");color:#fff;padding:2px 7px;border-radius:3px;">
+                                    @item.CategoryName
+                                </span>
+                            }
+                            <span class="blue-grey-text text-darken-4">@item.Subject</span>
+                        </a>
+                    </td>
+                    <td class="time">@item.SendDate.ToString("dd MMM HH:mm")</td>
+                </tr>
+            }
+        </tbody>
     </table>
 </div>
+
+<!-- Sayfalama -->
+<div class="p-15 m-t-30">
+    <nav>
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="/Message/Inbox?page=@(ViewBag.CurrentPage - 1)&search=@currentSearch&unreadOnly=@(isUnreadOnly.ToString().ToLower())&folder=@cf@(cc.HasValue ? "&categoryId=" + cc : "")">Önceki</a>
+            </li>
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                    <a class="page-link" href="/Message/Inbox?page=@i&search=@currentSearch&unreadOnly=@(isUnreadOnly.ToString().ToLower())&folder=@cf@(cc.HasValue ? "&categoryId=" + cc : "")">@i</a>
+                </li>
+            }
+            <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="/Message/Inbox?page=@(ViewBag.CurrentPage + 1)&search=@currentSearch&unreadOnly=@(isUnreadOnly.ToString().ToLower())&folder=@cf@(cc.HasValue ? "&categoryId=" + cc : "")">Sonraki</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+@section Scripts {
+<script>
+    var currentSearch     = "@Html.Raw(currentSearch)";
+    var currentUnreadOnly = @(isUnreadOnly.ToString().ToLower());
+</script>
+<script>
+    $(document).ready(function () {
+
+        $('.sl-all').on('change', function () {
+            $('.sl-one').prop('checked', $(this).is(':checked'));
+            updateBulkBar();
+        });
+
+        $('#unreadOnly').on('change', function () {
+            var checked = $(this).is(':checked');
+            window.location.href = '/Message/Inbox?page=1&folder=@cf&search='
+                + encodeURIComponent(currentSearch) + '&unreadOnly=' + checked;
+        });
+
+        function updateBulkBar() {
+            var count = $('.sl-one:checked').length;
+            if (count > 0) {
+                $('#bulkActionBar').removeClass('d-none').addClass('d-flex');
+                $('#selectedCount').text(count + ' mesaj seçili');
+            } else {
+                $('#bulkActionBar').removeClass('d-flex').addClass('d-none');
+            }
+        }
+
+        $(document).on('change', '.sl-one', function () { updateBulkBar(); });
+
+        function getSelectedIds() {
+            return $('.sl-one:checked').map(function () {
+                return $(this).data('message-id');
+            }).get();
+        }
+
+        function bulkPost(action, extraData) {
+            var ids = getSelectedIds();
+            if (!ids.length) return;
+
+            if (action === 'permanentDelete') {
+                $.ajax({
+                    url: '/Message/PermanentDelete',
+                    method: 'POST',
+                    traditional: true,
+                    data: { messageIds: ids },
+                    success: function (res) {
+                        if (res.success) location.reload();
+                        else alert(res.message || 'Hata oluştu.');
+                    }
+                });
+                return;
+            }
+
+            var data = { action: action, messageIds: ids };
+            if (extraData) $.extend(data, extraData);
+            $.ajax({
+                url: '/Message/BulkAction',
+                method: 'POST',
+                traditional: true,
+                data: data,
+                success: function (res) {
+                    if (res.success) location.reload();
+                    else alert(res.message || 'Hata oluştu.');
+                }
+            });
+        }
+
+        $('#bulkStar').on('click',  function () { bulkPost('star'); });
+        $('#bulkTrash').on('click', function () {
+            if (!confirm('Çöp kutusuna taşınsın mı?')) return;
+            bulkPost('trash');
+        });
+        $('#bulkUntrash').on('click', function () { bulkPost('untrash'); });
+        $('#bulkPermanentDelete').on('click', function () {
+            if (!confirm('Seçili mesajlar kalıcı olarak silinecek ve geri alınamaz. Emin misiniz?')) return;
+            bulkPost('permanentDelete');
+        });
+        $('#bulkSpam').on('click', function () {
+            if (!confirm('Spam olarak işaretlensin mi?')) return;
+            bulkPost('spam');
+        });
+        $('#bulkUnspam').on('click',     function () { bulkPost('unspam'); });
+        $('#bulkMarkRead').on('click',   function () { bulkPost('markread'); });
+        $('#bulkMarkUnread').on('click', function () { bulkPost('markunread'); });
+        $(document).on('click', '.bulk-categorize', function () {
+            bulkPost('categorize', { categoryId: $(this).data('category-id') });
+        });
+
+        $(document).on('click', '.star-icon', function () {
+            var icon = $(this);
+            $.post('/Message/ToggleStar', { messageId: icon.data('id') })
+                .done(function (res) {
+                    if (res.success) {
+                        if (res.isStarred) icon.removeClass('far').addClass('fas text-warning');
+                        else icon.removeClass('fas text-warning').addClass('far');
+                    }
+                });
+        });
+    });
+</script>
+}

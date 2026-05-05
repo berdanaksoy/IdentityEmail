@@ -1,50 +1,371 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+﻿@using IdentityEmail.Entities
+
+@{
+    var categories = ViewBag.Categories as List<MessageCategory>;
+    string cf = ViewBag.CurrentFolder ?? "inbox";
+    string Active(string f) => cf == f ? "active" : "";
+    int? cc = ViewBag.CurrentCategory;
+    string ActiveCat(int id) => cc == id ? "active" : "";
+}
+
+<!DOCTYPE html>
+<html dir="ltr" lang="tr">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - IdentityEmail</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/IdentityEmail.styles.css" asp-append-version="true" />
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" sizes="16x16" href="/mendy-admin/package/assets/images/favicon.png">
+    <title>MailMate</title>
+    <link href="/mendy-admin/package/assets/libs/summernote/dist/summernote-bs4.css" rel="stylesheet">
+    <link href="/mendy-admin/package/assets/libs/dropzone/dist/min/dropzone.min.css" rel="stylesheet">
+    <link href="/mendy-admin/package/dist/css/style.min.css" rel="stylesheet">
+
+    <style>
+            html, body { margin: 0; padding: 0; }
+            body { background-color: #f5f5f5; }
+
+            .topbar, .top-navbar, header.topbar, .topbar .navbar-header { background: #e85d8e !important; }
+            .topbar .navbar-header {
+                width: auto !important; min-width: auto !important; flex: 0 0 auto !important;
+                padding: 0 16px !important; display: flex; align-items: center;
+                border-right: none !important; box-shadow: none !important;
+            }
+            .navbar-brand { margin: 0 !important; padding: 0 !important; display: flex; align-items: center; }
+            .navbar-brand .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+            .navbar-brand .logo-icon img { height: 34px; width: auto; display: block; }
+            .navbar-brand .logo-text img { height: 24px; width: auto; display: block; }
+            .topbar .navbar-nav .nav-link,
+            .topbar .navbar-nav .nav-link i,
+            .topbar .navbar-nav .nav-link svg,
+            .topbar .pro-name { color: #fff !important; }
+            .page-wrapper { margin-left: 0 !important; }
+            #main-wrapper[data-sidebartype="mini-sidebar"] .page-wrapper,
+            #main-wrapper[data-sidebartype="full"] .page-wrapper { margin-left: 0 !important; }
+
+            /* Sol panel */
+            .left-part .list-group-item { padding: 0; border: none; border-bottom: 1px solid #f5f5f5; }
+            .left-part .list-group-item a { padding: 10px 16px; display: flex; align-items: center; gap: 10px; text-decoration: none; }
+            .left-part .list-group-item a i { width: 18px; text-align: center; font-size: 15px; }
+            .left-part .list-group-item a.active { color: #e85d8e !important; font-weight: 600; }
+
+            /* Compose butonu */
+            #compose_mail {
+                background-color: #ff6f3d !important; border-color: #ff6f3d !important; box-shadow: none !important;
+            }
+            #compose_mail:hover { background-color: #f35f2a !important; border-color: #f35f2a !important; }
+
+            /* Sayfalama */
+            .pagination .page-link { color: #e85d8e; }
+            .pagination .page-link:hover { color: #d94b7f; }
+            .pagination .page-item.active .page-link { background-color: #e85d8e; border-color: #e85d8e; color: #fff; }
+
+            /* Kategori dot */
+            .category-dot {
+                display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+                margin-right: 6px; flex-shrink: 0; vertical-align: middle;
+            }
+
+            /* Mobil */
+            .email-leftbar-toggler {
+                display: none; position: fixed; left: 12px; top: 90px; z-index: 1045;
+                width: 42px; height: 42px; border: none; border-radius: 50%;
+                background: #e85d8e; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.18);
+                align-items: center; justify-content: center; cursor: pointer;
+            }
+            .email-leftbar-toggler i { color: #fff; font-size: 18px; }
+            .email-overlay { display: none; }
+
+            @@media (max-width: 767.98px) {
+                .email-leftbar-toggler { display: inline-flex; }
+                .email-app .left-part {
+                    position: fixed; left: -270px; top: 0; width: 260px; height: 100vh;
+                    background: #fff; z-index: 1050; transition: left .25s ease;
+                    box-shadow: 0 8px 24px rgba(0,0,0,.18); overflow-y: auto;
+                }
+                .email-app .left-part.show-panel { left: 0; }
+                .email-overlay.show { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1049; }
+            }
+
+            .mailbox .dropdown-menu {
+                min-width: 320px;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            .mailbox .message-body {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+
+            @RenderSection("Styles", required: false)
+    </style>
 </head>
+
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">IdentityEmail</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+    <div class="preloader">
+        <div class="lds-ripple"><div class="lds-pos"></div><div class="lds-pos"></div></div>
+    </div>
+
+    <div id="main-wrapper">
+        <!-- ÜST BAR -->
+        <header class="topbar">
+            <nav class="navbar top-navbar navbar-expand-md navbar-dark">
+                <div class="navbar-header">
+                    <div class="navbar-brand">
+                        <a href="/Message/Inbox" class="logo">
+                            <span class="logo-icon"><img src="/mendy-admin/package/assets/images/logo-icon.png" alt="Logo"></span>
+                            <span class="logo-text"><img src="/mendy-admin/package/assets/images/logo_text.png" alt="MailMate"></span>
+                        </a>
+                    </div>
+                    <a class="topbartoggler d-block d-md-none" href="javascript:void(0)"
+                           data-toggle="collapse" data-target="#navbarSupportedContent">
+                        <i class="ti-more"></i>
+                    </a>
+                </div>
+
+                <div class="navbar-collapse collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav float-left mr-auto"></ul>
+                    <ul class="navbar-nav float-right">
+
+                        <!-- Okunmamış Mesajlar -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle waves-effect waves-dark"
+                                   href="javascript:void(0)" data-toggle="dropdown">
+                                <i data-feather="mail"></i>
+                                @if (ViewBag.UnreadCount > 0)
+                                {
+                                    <span class="badge badge-danger notify-no rounded-circle">@ViewBag.UnreadCount</span>
+                                }
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right mailbox animated bounceInDown">
+                                <ul class="list-style-none">
+                                    <li>
+                                        <div class="drop-title bg-light">
+                                            <h4 class="mb-0 mt-1">@ViewBag.UnreadCount okunmamış mesaj</h4>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="message-center message-body">
+                                            @if (ViewBag.UnreadMessages != null)
+                                            {
+                                                foreach (var msg in ViewBag.UnreadMessages)
+                                                {
+                                                    <a href="/Message/MessageDetail/@msg.MessageId" class="message-item">
+                                                        <span class="user-img">
+                                                            <img src="@msg.ImageUrl" alt="user" class="rounded-circle" width="40">
+                                                        </span>
+                                                        <div class="mail-contnet">
+                                                            <h5 class="message-title">@msg.SenderFullname</h5>
+                                                            <span class="mail-desc">@msg.Subject</span>
+                                                            <span class="time">@msg.SendDate.ToString("dd MMM HH:mm")</span>
+                                                        </div>
+                                                    </a>
+                                                }
+                                            }
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a class="nav-link text-center font-weight-bold" 
+                                           href="/Message/Inbox"
+                                           style="display:block; padding:10px; color:#333 !important; border-top:1px solid #eee;">
+                                            Tüm mesajları gör <i class="fa fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+
+                        <!-- Kullanıcı -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle waves-effect waves-dark pro-pic"
+                                   href="javascript:void(0)" data-toggle="dropdown">
+                                <span class="mr-3 font-normal d-none d-sm-inline-block pro-name">
+                                    <span>Merhaba,</span> @ViewBag.LoggedFullname
+                                </span>
+                                <img src="@ViewBag.LoggedImageUrl" alt="user" class="rounded-circle" width="40">
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right user-dd animated flipInY">
+                                <div class="d-flex no-block align-items-center p-3 bg-light mb-2">
+                                    <img src="@ViewBag.LoggedImageUrl" alt="user" class="rounded-circle" width="60">
+                                    <div class="ml-2">
+                                        <h4 class="mb-0">@ViewBag.LoggedFullname</h4>
+                                        <p class="mb-0">@ViewBag.LoggedEmail</p>
+                                    </div>
+                                </div>
+                                <div class="profile-dis">
+                                    <a class="dropdown-item" href="/Profile/Index">
+                                        <i class="ti-user mx-1"></i> Profilim
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="/Message/Logout">
+                                        <i class="fa fa-power-off mx-1"></i> Çıkış Yap
+                                    </a>
+                                </div>
+                            </div>
                         </li>
                     </ul>
                 </div>
+            </nav>
+        </header>
+
+        <button type="button" class="email-leftbar-toggler" id="emailLeftbarToggler">
+            <i class="fa fa-bars"></i>
+        </button>
+        <div class="email-overlay" id="emailOverlay"></div>
+
+        <div class="page-wrapper">
+            <div class="container-fluid">
+                <div class="email-app">
+
+                    <!-- SOL PANEL -->
+                    <div class="left-part bg-white" id="emailLeftPart">
+                        <div class="scrollable" style="height:100%;">
+                            <div class="p-15">
+                                <a id="compose_mail" class="waves-effect waves-light btn btn-danger d-block"
+                                   href="/Message/CreateMessage">
+                                    <i class="fa fa-pencil mr-1"></i> Yeni Mesaj Oluştur
+                                </a>
+                            </div>
+                            <div class="divider"></div>
+                            <ul class="list-group">
+                                <li><small class="p-15 grey-text text-lighten-1 db">Klasörler</small></li>
+                                <li class="list-group-item">
+                                    <a href="/Message/Inbox?folder=inbox" class="@Active("inbox") list-group-item-action">
+                                        <i class="fa fa-inbox"></i> Gelen Kutusu
+                                        @if (ViewBag.UnreadCount > 0)
+                                        {
+                                            <span class="label float-right" style="background:#2ecc71;color:#fff;">@ViewBag.UnreadCount</span>
+                                        }
+                                    </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="/Message/Inbox?folder=starred" class="@Active("starred") list-group-item-action">
+                                        <i class="fa fa-star"></i> Yıldızlı
+                                    </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="/Message/Inbox?folder=sent" class="@Active("sent") list-group-item-action">
+                                        <i class="fa fa-paper-plane"></i> Gönderilenler
+                                    </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="/Message/Inbox?folder=draft" class="@Active("draft") list-group-item-action">
+                                        <i class="fa fa-edit"></i> Taslaklar
+                                        @if (ViewBag.DraftCount > 0)
+                                        {
+                                            <span class="label float-right" style="background:#f39c12;color:#fff;">@ViewBag.DraftCount</span>
+                                        }
+                                    </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="/Message/Inbox?folder=spam" class="@Active("spam") list-group-item-action">
+                                        <i class="fa fa-ban"></i> Spam
+                                        @if (ViewBag.SpamCount > 0)
+                                        {
+                                            <span class="label float-right" style="background:#e74c3c;color:#fff;">@ViewBag.SpamCount</span>
+                                        }
+                                    </a>
+                                </li>
+                                <li class="list-group-item">
+                                    <a href="/Message/Inbox?folder=trash" class="@Active("trash") list-group-item-action">
+                                        <i class="fa fa-trash"></i> Çöp Kutusu
+                                        @if (ViewBag.TrashCount > 0)
+                                        {
+                                            <span class="label float-right" style="background:#7f8c8d;color:#fff;">@ViewBag.TrashCount</span>
+                                        }
+                                    </a>
+                                    </li>
+                                    <li class="list-group-item"><hr></li>
+                                    <li>
+                                        <div class="p-15 d-flex align-items-center justify-content-between">
+                                            <small class="grey-text text-lighten-1">Kategoriler</small>
+                                        </div>
+                                </li>
+                                @if (categories != null && categories.Any())
+                                {
+                                    foreach (var cat in categories)
+                                    {
+                                        <li class="list-group-item">
+                                            <a href="/Message/Inbox?folder=category&categoryId=@cat.CategoryId"
+                                                   class="@ActiveCat(cat.CategoryId) list-group-item-action">
+                                                <span class="category-dot" style="background:@(cat.Color ?? "#aaa")"></span>
+                                                @cat.Name
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li class="list-group-item">
+                                        <small class="text-muted px-3">Henüz kategori yok</small>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- SAYFA İÇERİĞİ -->
+                    <div class="right-part bg-white">
+                        @RenderBody()
+                    </div>
+
+                </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+
+            <footer class="footer text-center">
+                Tüm Hakları Saklıdır &copy; @DateTime.Now.Year &mdash;
+                <a href="https://github.com/berdanaksoy" target="_blank">Berdan Aksoy</a>
+            </footer>
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - IdentityEmail - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+    <script src="/mendy-admin/package/assets/libs/jquery/dist/jquery.min.js"></script>
+    <script src="/mendy-admin/package/assets/libs/popper.js/dist/umd/popper.min.js"></script>
+    <script src="/mendy-admin/package/assets/libs/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="/mendy-admin/package/dist/js/app.min.js"></script>
+    <script src="/mendy-admin/package/assets/libs/perfect-scrollbar/dist/perfect-scrollbar.jquery.min.js"></script>
+    <script src="/mendy-admin/package/dist/js/waves.js"></script>
+    <script src="/mendy-admin/package/dist/js/feather.min.js"></script>
+    <script src="/mendy-admin/package/dist/js/custom.min.js"></script>
+    <script src="/mendy-admin/package/assets/libs/summernote/dist/summernote-bs4.min.js"></script>
+    <script src="/mendy-admin/package/assets/libs/dropzone/dist/min/dropzone.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+        if (typeof feather !== "undefined") feather.replace();
+
+        // Renk seç
+        $(document).on('click', '.color-option', function () {
+        $('.color-option').css('border', '3px solid transparent');
+        $(this).css('border', '3px solid #333');
+        $('#selectedColor').val($(this).data('color'));
+        $('#colorError').addClass('d-none');
+        });
+
+        // Mobil sol panel
+        var toggler  = document.getElementById("emailLeftbarToggler");
+        var leftPart = document.getElementById("emailLeftPart");
+        var overlay  = document.getElementById("emailOverlay");
+
+        function closeLeftPanel() {
+        leftPart.classList.remove("show-panel");
+        overlay.classList.remove("show");
+        }
+
+        if (toggler && leftPart && overlay) {
+        toggler.addEventListener("click", function () {
+        leftPart.classList.toggle("show-panel");
+        overlay.classList.toggle("show");
+        });
+        overlay.addEventListener("click", closeLeftPanel);
+        window.addEventListener("resize", function () {
+        if (window.innerWidth > 767.98) closeLeftPanel();
+        });
+        }
+        });
+    </script>
+
+    @RenderSection("Scripts", required: false)
 </body>
 </html>

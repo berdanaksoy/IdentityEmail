@@ -1,0 +1,555 @@
+﻿@model IdentityEmail.Entities.AppUser
+
+@{
+    var categories = ViewBag.Categories as List<IdentityEmail.Entities.MessageCategory>;
+    var catCount = categories?.Count ?? 0;
+}
+
+@section Styles {
+<style>
+    .stat-card { background:#fff; border-radius:8px; padding:16px 10px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.08); transition:transform .2s; }
+    .stat-card .stat-icon { width:42px; height:42px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:16px; margin-bottom:8px; }
+    .stat-card .stat-number { font-size:22px; font-weight:700; color:#333; }
+    .stat-card .stat-label  { font-size:12px; color:#888; margin-top:3px; }
+    .nav-tabs .nav-link.active { color:#e85d8e !important; border-bottom:2px solid #e85d8e; font-weight:600; }
+    .nav-tabs .nav-link { color:#555; }
+    .form-control-line { border:none; border-bottom:1px solid #e0e0e0; border-radius:0; padding-left:0; }
+    .form-control-line:focus { border-bottom-color:#e85d8e; box-shadow:none; }
+    .cat-item { display:flex; align-items:center; padding:8px 12px; border:1px solid #f0d0e0; border-radius:8px; margin-bottom:6px; }
+    .cat-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; margin-right:10px; }
+    .profile-avatar { width:90px; height:90px; object-fit:cover; border:4px solid #f0c0d8; }
+</style>
+}
+
+<div class="container-fluid p-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-12">
+            <div class="card">
+                <ul class="nav nav-tabs border-bottom px-3 pt-2" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="pill" href="#tab-profile" role="tab">
+                            <i class="fa fa-user mr-1"></i> Profilim
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="pill" href="#tab-edit" role="tab">
+                            <i class="fa fa-edit mr-1"></i> Düzenle
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="pill" href="#tab-stats" role="tab">
+                            <i class="fa fa-bar-chart mr-1"></i> İstatistikler
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+
+                    <!-- Profilim Sekmesi -->
+                    <div class="tab-pane fade show active p-4" id="tab-profile" role="tabpanel">
+
+                        <!-- Üst — Fotoğraf + Temel Bilgiler -->
+                        <div class="d-flex align-items-center mb-4" style="gap:24px;">
+                            <img src="@Model.ImageUrl" class="rounded-circle profile-avatar" id="previewImg" alt="Profil">
+                            <div>
+                                <h4 class="mb-1">@Model.Name @Model.Surname</h4>
+                                <p class="text-muted mb-1">
+                                    <i class="fa fa-envelope-o mr-1"></i> @Model.Email
+                                </p>
+                                @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                                {
+                                    <p class="text-muted mb-1">
+                                        <i class="fa fa-phone mr-1"></i> @Model.PhoneNumber
+                                    </p>
+                                }
+                                <span class="badge @(Model.EmailConfirmed ? "badge-success" : "badge-warning")">
+                                    @(Model.EmailConfirmed ? "Hesap Onaylı" : "Onay Bekliyor")
+                                </span>
+                            </div>
+                        </div>
+
+                        <hr class="mt-0 mb-4">
+
+                        <!-- Kullanımınız Kartları -->
+                        <h6 class="font-weight-bold mb-3" style="color:#e85d8e;">
+                            <i class="fa fa-bar-chart mr-1"></i> Kullanımınız
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#fff0f7;">
+                                        <i class="fa fa-paper-plane" style="color:#e85d8e;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.SentCount</div>
+                                    <div class="stat-label">Gönderilen</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#f0f8ff;">
+                                        <i class="fa fa-inbox" style="color:#3498db;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.ReceivedCount</div>
+                                    <div class="stat-label">Alınan</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#fffbf0;">
+                                        <i class="fa fa-envelope" style="color:#f39c12;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.UnreadCountStat</div>
+                                    <div class="stat-label">Okunmamış</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#fffdf0;">
+                                        <i class="fa fa-star" style="color:#f1c40f;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.StarredCount</div>
+                                    <div class="stat-label">Yıldızlı</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#f5f5f5;">
+                                        <i class="fa fa-edit" style="color:#888;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.DraftCountStat</div>
+                                    <div class="stat-label">Taslak</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#fff5f5;">
+                                        <i class="fa fa-ban" style="color:#e74c3c;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.SpamCountStat</div>
+                                    <div class="stat-label">Spam</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#f5f5f5;">
+                                        <i class="fa fa-trash" style="color:#7f8c8d;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.TrashCountStat</div>
+                                    <div class="stat-label">Çöp Kutusu</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-icon" style="background:#f5f0ff;">
+                                        <i class="fa fa-tag" style="color:#9b59b6;"></i>
+                                    </div>
+                                    <div class="stat-number">@ViewBag.CategoryCount</div>
+                                    <div class="stat-label">Kategori</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Düzenle Sekmesi -->
+                    <div class="tab-pane fade p-4" id="tab-edit" role="tabpanel">
+
+                        <h6 class="font-weight-bold mb-3" style="color:#e85d8e;">
+                            <i class="fa fa-user-circle mr-1"></i> Kişisel Bilgiler
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Ad</label>
+                                    <input type="text" id="editName" class="form-control form-control-line" value="@Model.Name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Soyad</label>
+                                    <input type="text" id="editSurname" class="form-control form-control-line" value="@Model.Surname">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Telefon</label>
+                                    <input type="text" id="editPhone" class="form-control form-control-line"
+                                           value="@Model.PhoneNumber" placeholder="05xx xxx xx xx">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Profil Fotoğrafı URL</label>
+                                    <div class="input-group">
+                                        <input type="text" id="editImageUrl" class="form-control form-control-line"
+                                               value="@Model.ImageUrl" placeholder="https://...">
+                                        <div class="input-group-append">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" id="previewBtn">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="previewArea" class="mb-3" style="display:none;">
+                            <img id="previewImgEdit" src="" class="rounded-circle"
+                                 style="width:80px;height:80px;object-fit:cover;border:3px solid #f0c0d8;">
+                        </div>
+
+                        <button type="button" class="btn text-white mr-2" id="updateProfileBtn"
+                                style="background:#e85d8e;border-color:#e85d8e;">
+                            <i class="fa fa-save mr-1"></i> Kaydet
+                        </button>
+
+                        <hr class="my-4">
+
+                        <h6 class="font-weight-bold mb-3" style="color:#e85d8e;">
+                            <i class="fa fa-lock mr-1"></i> Şifre Değiştir
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Mevcut Şifre</label>
+                                    <input type="password" id="currentPassword" class="form-control form-control-line" placeholder="••••••••">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Yeni Şifre</label>
+                                    <input type="password" id="newPassword" class="form-control form-control-line" placeholder="••••••••">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label>Yeni Şifre (Tekrar)</label>
+                                    <input type="password" id="confirmPassword" class="form-control form-control-line" placeholder="••••••••">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn text-white" id="changePasswordBtn"
+                                style="background:#e85d8e;border-color:#e85d8e;">
+                            <i class="fa fa-key mr-1"></i> Şifreyi Değiştir
+                        </button>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h6 class="font-weight-bold mb-0" style="color:#e85d8e;">
+                                <i class="fa fa-tag mr-1"></i> Kategorilerim
+                            </h6>
+                            <button type="button" class="btn btn-sm text-white" id="openAddCatBtn"
+                                    style="background:#e85d8e;border-color:#e85d8e;">
+                                <i class="fa fa-plus mr-1"></i> Kategori Ekle
+                            </button>
+                        </div>
+
+                        <div id="categoryList">
+                            @if (categories != null && categories.Any())
+                            {
+                                foreach (var cat in categories)
+                                {
+                                    <div class="cat-item" id="cat-@cat.CategoryId">
+                                        <span class="cat-dot" style="background:@(cat.Color ?? "#aaa");"></span>
+                                        <span style="flex:1;">@cat.Name</span>
+                                        <button type="button" class="btn btn-sm btn-link text-danger p-0 delete-cat-btn"
+                                                data-id="@cat.CategoryId" data-name="@cat.Name">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted" id="noCatMsg">Henüz kategori yok.</p>
+                            }
+                        </div>
+
+                        <div id="profileMsg" class="mt-3" style="display:none;"></div>
+                    </div>
+
+                    <!-- İstatistikler Sekmesi -->
+                    <div class="tab-pane fade p-4" id="tab-stats" role="tabpanel">
+                        <div class="row">
+
+                            <!-- Aylık Grafik -->
+                            <div class="col-lg-7 mb-4">
+                                <div class="card" style="box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                                    <div class="card-body">
+                                        <h6 class="font-weight-bold mb-3" style="color:#e85d8e;">
+                                            <i class="fa fa-line-chart mr-1"></i> Son 12 Ay — Gelen Mesajlar
+                                        </h6>
+                                        <canvas id="monthlyChart" height="180"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Kategori Grafiği -->
+                            <div class="col-lg-5 mb-4">
+                                <div class="card h-100" style="box-shadow:0 1px 4px rgba(0,0,0,.08);">
+                                    <div class="card-body">
+                                        <h6 class="font-weight-bold mb-3" style="color:#e85d8e;">
+                                            <i class="fa fa-pie-chart mr-1"></i> Kategori Dağılımı
+                                        </h6>
+                                        @if (ViewBag.CategoryCount > 0)
+                                        {
+                                            <canvas id="categoryChart" height="180"></canvas>
+                                            <div id="categoryLegend" class="mt-3"></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-flex align-items-center justify-content-center h-75 text-muted">
+                                                <div class="text-center">
+                                                    <i class="fa fa-tag fa-2x mb-2"></i>
+                                                    <p>Henüz kategorize edilmiş mesaj yok.</p>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kategori Ekle Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#e85d8e;">
+                <h5 class="modal-title text-white">Kategori Ekle</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                @if (catCount >= 5)
+                {
+                    <div class="alert alert-warning mb-0">En fazla 5 kategori ekleyebilirsiniz.</div>
+                }
+                else
+                {
+                    <div class="form-group">
+                        <label>Kategori Adı</label>
+                        <input type="text" id="categoryName" class="form-control" placeholder="Örn: İş, Kişisel...">
+                    </div>
+                    <div class="form-group">
+                        <label>Renk Seçin</label>
+                        <div class="d-flex flex-wrap" style="gap:10px;">
+                            @foreach (var color in new[] { "#e85d8e","#3498db","#2ecc71","#f39c12","#9b59b6","#e74c3c","#1abc9c","#34495e" })
+                            {
+                                <div class="color-option" data-color="@color"
+                                     style="width:28px;height:28px;border-radius:50%;background:@color;cursor:pointer;border:3px solid transparent;transition:border .2s;"></div>
+                            }
+                        </div>
+                        <input type="hidden" id="selectedColor" value="">
+                        <small id="colorError" class="text-danger d-none">Lütfen bir renk seçin.</small>
+                    </div>
+                    <div class="text-muted small">@catCount / 5 kategori kullanıldı.</div>
+                }
+            </div>
+            @if (catCount < 5)
+            {
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-sm text-white" id="saveCategoryBtn"
+                            style="background:#e85d8e;border-color:#e85d8e;">Kaydet</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Kategori Sil Modal -->
+<div class="modal fade" id="deleteCatModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#e74c3c;">
+                <h5 class="modal-title text-white">Kategoriyi Sil</h5>
+                <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p><strong id="deleteCatName"></strong> kategorisini silmek istediğinize emin misiniz?</p>
+                <small class="text-muted">Bu kategorideki mesajlardan kategori kaldırılacak.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteCatBtn">Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+    var monthLabels = @Html.Raw(ViewBag.MonthLabels);
+    var monthCounts = @Html.Raw(ViewBag.MonthCounts);
+
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'bar',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'Gelen Mesaj',
+                data: monthCounts,
+                backgroundColor: 'rgba(232,93,142,0.2)',
+                borderColor: '#e85d8e',
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+    });
+
+    @if (ViewBag.CategoryCount > 0)
+    {
+        @:var catLabels = @Html.Raw(ViewBag.CategoryLabels);
+        @:var catCounts = @Html.Raw(ViewBag.CategoryCounts);
+        @:var catColors = @Html.Raw(ViewBag.CategoryColors);
+
+        @:new Chart(document.getElementById('categoryChart'), {
+        @:    type: 'doughnut',
+        @:    data: { labels: catLabels, datasets: [{ data: catCounts, backgroundColor: catColors, borderWidth: 2 }] },
+        @:    options: { responsive: true, plugins: { legend: { display: false } } }
+        @:});
+
+        @:var legend = document.getElementById('categoryLegend');
+        @:catLabels.forEach(function(label, i) {
+        @:    legend.innerHTML += '<div class="d-flex align-items-center mb-2">' +
+        @:        '<span style="width:12px;height:12px;border-radius:50%;background:' + catColors[i] + ';display:inline-block;margin-right:8px;flex-shrink:0;"></span>' +
+        @:        '<span style="font-size:13px;">' + label + '</span>' +
+        @:        '<span class="ml-auto font-weight-bold" style="font-size:13px;">' + catCounts[i] + ' mesaj</span>' +
+        @:        '</div>';
+        @:});
+    }
+</script>
+<script>
+    $(document).ready(function () {
+
+        var currentCatCount = @catCount;
+        var deleteCatId = null;
+
+        // Fotoğraf önizle
+        $('#previewBtn').on('click', function () {
+            var url = $('#editImageUrl').val().trim();
+            if (!url) { alert('URL boş olamaz.'); return; }
+            $('#previewImgEdit').attr('src', url);
+            $('#previewArea').show();
+        });
+
+        function showMsg(msg, isSuccess) {
+            $('#profileMsg')
+                .removeClass('alert-success alert-danger')
+                .addClass(isSuccess ? 'alert alert-success' : 'alert alert-danger')
+                .text(msg).show();
+            setTimeout(function () { $('#profileMsg').fadeOut(); }, 3000);
+        }
+
+        // Profil güncelle
+        $('#updateProfileBtn').on('click', function () {
+            $.post('/Profile/UpdateProfile', {
+                name:        $('#editName').val().trim(),
+                surname:     $('#editSurname').val().trim(),
+                phoneNumber: $('#editPhone').val().trim(),
+                imageUrl:    $('#editImageUrl').val().trim()
+            }).done(function (res) {
+                if (res.success) {
+                    showMsg('Profil başarıyla güncellendi.', true);
+                    setTimeout(function () { location.reload(); }, 1500);
+                } else {
+                    showMsg(res.message || 'Bir hata oluştu.', false);
+                }
+            });
+        });
+
+        // Şifre değiştir
+        $('#changePasswordBtn').on('click', function () {
+            var current = $('#currentPassword').val();
+            var newPass = $('#newPassword').val();
+            var confirm = $('#confirmPassword').val();
+            if (!current || !newPass || !confirm) { showMsg('Tüm şifre alanlarını doldurun.', false); return; }
+            if (newPass !== confirm) { showMsg('Yeni şifreler eşleşmiyor.', false); return; }
+            $.post('/Profile/ChangePassword', {
+                currentPassword: current,
+                newPassword: newPass,
+                confirmPassword: confirm
+            }).done(function (res) {
+                if (res.success) {
+                    showMsg('Şifre başarıyla değiştirildi.', true);
+                    $('#currentPassword, #newPassword, #confirmPassword').val('');
+                } else {
+                    showMsg(res.message || 'Bir hata oluştu.', false);
+                }
+            });
+        });
+
+        // Kategori ekle modal aç
+        $('#openAddCatBtn').on('click', function () {
+            $('#categoryName').val('');
+            $('#selectedColor').val('');
+            $('.color-option').css('border', '3px solid transparent');
+            $('#colorError').addClass('d-none');
+            $('#addCategoryModal').modal('show');
+        });
+
+        // Renk seç
+        $(document).on('click', '.color-option', function () {
+            $('.color-option').css('border', '3px solid transparent');
+            $(this).css('border', '3px solid #333');
+            $('#selectedColor').val($(this).data('color'));
+            $('#colorError').addClass('d-none');
+        });
+
+        // Kategori kaydet
+        $('#saveCategoryBtn').on('click', function () {
+            var name  = $('#categoryName').val().trim();
+            var color = $('#selectedColor').val();
+            if (!name)  { alert('Kategori adı boş olamaz.'); return; }
+            if (!color) { $('#colorError').removeClass('d-none'); return; }
+            $.post('/Message/AddCategory', { name: name, color: color })
+                .done(function (res) {
+                    if (res.success) {
+                        $('#addCategoryModal').modal('hide');
+                        location.reload();
+                    } else {
+                        alert(res.message || 'Bir hata oluştu.');
+                    }
+                });
+        });
+
+        // Kategori sil butonu
+        $(document).on('click', '.delete-cat-btn', function () {
+            deleteCatId = $(this).data('id');
+            $('#deleteCatName').text($(this).data('name'));
+            $('#deleteCatModal').modal('show');
+        });
+
+        // Sil onayla
+        $('#confirmDeleteCatBtn').on('click', function () {
+            if (!deleteCatId) return;
+            $.post('/Message/DeleteCategory', { categoryId: deleteCatId })
+                .done(function (res) {
+                    if (res.success) {
+                        $('#deleteCatModal').modal('hide');
+                        $('#cat-' + deleteCatId).fadeOut(200, function () { $(this).remove(); });
+                        currentCatCount--;
+                        if (currentCatCount === 0)
+                            $('#categoryList').html('<p class="text-muted" id="noCatMsg">Henüz kategori yok.</p>');
+                        deleteCatId = null;
+                    } else {
+                        alert(res.message || 'Bir hata oluştu.');
+                    }
+                });
+        });
+    });
+</script>
+}

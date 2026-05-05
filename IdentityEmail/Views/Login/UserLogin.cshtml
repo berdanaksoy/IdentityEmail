@@ -5,18 +5,140 @@
 }
 
 <!DOCTYPE html>
-<link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+<html dir="ltr">
 
-<form method="post">
-    <div class="container">
-        <br /><br />
-        <h3>Giriş Sayfası</h3>
-        <label>Kullanıcı Adınız :</label>
-        <input type="text" asp-for="Username" class="form-control" />
-        <br />
-        <label>Şifreniz :</label>
-        <input type="text" required asp-for="Password" class="form-control" />
-        <br />
-        <button class="btn btn-info">Giriş Yap</button>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" sizes="16x16" href="/mendy-admin/package/assets/images/favicon.png">
+    <title>MailMate</title>
+    <link href="/mendy-admin/package/dist/css/style.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <div class="preloader">
+            <div class="lds-ripple">
+                <div class="lds-pos"></div>
+                <div class="lds-pos"></div>
+            </div>
+        </div>
+
+        <div class="auth-wrapper d-flex no-block justify-content-center align-items-center"
+             style="background:url(/mendy-admin/package/assets/images/big/auth-bg.jpg) no-repeat center center;">
+            <div class="auth-box">
+                <div id="loginform">
+                    <div class="logo">
+                        <span class="db"><img src="/mendy-admin/package/assets/images/logo-icon.png" alt="logo" /></span>
+                        <h5 class="font-medium m-b-20">MailMate'e Giriş Yap!</h5>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <form class="form-horizontal mt-3" method="post" asp-action="UserLogin" asp-controller="Login">
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="ti-user"></i></span>
+                                    </div>
+                                    <input type="text" class="form-control form-control-lg" placeholder="Kullanıcı Adı" required asp-for="Username">
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="ti-pencil"></i></span>
+                                    </div>
+                                    <input type="password" class="form-control form-control-lg" placeholder="Şifre" required asp-for="Password">
+                                </div>
+
+                                <div class="text-danger" asp-validation-summary="All"></div>
+
+                                <div class="form-group text-center">
+                                    <div class="col-xs-12 p-b-20">
+                                        <button class="btn btn-block btn-lg bg-gradient-primary text-white" type="submit">
+                                            Giriş Yap
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-group m-b-0 m-t-10">
+                                    <div class="col-sm-12 text-center">
+                                        Hesabınız yok mu?
+                                        <a href="/Register/CreateUser" class="text-info m-l-5"><b>Aramıza Katılın!</b></a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-</form>
+
+    <div id="verifyModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary">
+                    <h4 class="modal-title text-white">Kimlik Doğrulama</h4>
+                    <button type="button" class="close text-white" data-dismiss="modal" style="color:#fff !important; opacity:1;">×</button>
+                </div>
+                <form method="post" asp-action="VerifyLoginCode" asp-controller="Login" id="verifyForm">
+                    <div class="modal-body text-center p-4">
+                        <img src="https://cdn-icons-png.flaticon.com/512/6195/6195699.png" width="80" class="mb-3">
+                        <p class="text-muted mb-3">MailMate hesabınızı doğrulamak için E-postanıza gönderilen <strong style="white-space:nowrap;">6 haneli</strong> kodu girin.</p>
+
+                        @if (ViewBag.VerifyError != null)
+                        {
+                            <div class="alert alert-danger py-2 mb-3">@ViewBag.VerifyError</div>
+                        }
+
+                        <div class="d-flex justify-content-center mb-2" style="gap:8px">
+                            <input class="vi form-control text-center font-weight-bold" maxlength="1" style="width:46px;height:54px;font-size:22px">
+                            <input class="vi form-control text-center font-weight-bold" maxlength="1" style="width:46px;height:54px;font-size:22px">
+                            <input class="vi form-control text-center font-weight-bold" maxlength="1" style="width:46px;height:54px;font-size:22px">
+                            <input class="vi form-control text-center font-weight-bold" maxlength="1" style="width:46px;height:54px;font-size:22px">
+                            <input class="vi form-control text-center font-weight-bold" maxlength="1" style="width:46px;height:54px;font-size:22px">
+                            <input class="vi form-control text-center font-weight-bold" maxlength="1" style="width:46px;height:54px;font-size:22px">
+                        </div>
+                        <input type="hidden" name="code" id="hiddenCode">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">İptal</button>
+                        <button type="submit" class="btn btn-primary">Doğrula</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/mendy-admin/package/assets/libs/jquery/dist/jquery.min.js"></script>
+    <script src="/mendy-admin/package/assets/libs/popper.js/dist/umd/popper.min.js"></script>
+    <script src="/mendy-admin/package/assets/libs/bootstrap/dist/js/bootstrap.min.js"></script>
+
+    <script>
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+            $(".preloader").fadeOut();
+
+            @if (ViewBag.ShowModal == true)
+            {
+                    <text>$('#verifyModal').modal({ backdrop: 'static', keyboard: false });</text>
+            }
+        });
+
+        $(document).on('input', '.vi', function () {
+            $(this).val($(this).val().replace(/\D/g, ''));
+            if ($(this).val()) $(this).next('.vi').focus();
+        }).on('keydown', '.vi', function (e) {
+            if (e.key === 'Backspace' && !$(this).val()) $(this).prev('.vi').focus();
+        });
+
+        $('#verifyForm').on('submit', function () {
+            var code = $('.vi').map(function () { return $(this).val(); }).get().join('');
+            if (code.length < 6) {
+                $('.vi').val('').first().focus();
+                return false;
+            }
+            $('#hiddenCode').val(code);
+        });
+    </script>
+</body>
+
+</html>

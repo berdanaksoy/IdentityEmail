@@ -32,7 +32,7 @@ namespace IdentityEmail.Controllers
 
             SmtpClient client = new SmtpClient();
             client.Connect("smtp.gmail.com", 587, false);
-            client.Authenticate("berdan0227@gmail.com", "qply jhbf cemv auub");
+            client.Authenticate("berdan0227@gmail.com", "your code");
             client.Send(mimeMessage);
             client.Disconnect(true);
 

@@ -1,0 +1,359 @@
+﻿@model IdentityEmail.Dtos.MessageDetailDto
+
+@{
+    var categories = ViewBag.Categories as List<IdentityEmail.Entities.MessageCategory>;
+    string returnUrl = ViewBag.ReturnUrl ?? "/Message/Inbox";
+    string currentFolder = "inbox";
+    if (returnUrl.Contains("folder=sent"))          currentFolder = "sent";
+    else if (returnUrl.Contains("folder=draft"))    currentFolder = "draft";
+    else if (returnUrl.Contains("folder=starred"))  currentFolder = "starred";
+    else if (returnUrl.Contains("folder=spam"))     currentFolder = "spam";
+    else if (returnUrl.Contains("folder=trash"))    currentFolder = "trash";
+    else if (returnUrl.Contains("folder=category")) currentFolder = "category";
+
+    int? contactCategoryId = ViewBag.ContactCategoryId as int?;
+}
+
+@section Styles {
+<style>
+    .detail-card { background:#fff; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,.08); margin:16px; }
+    .detail-header { border-bottom:1px solid #f0e0e8; padding:20px 24px; }
+    .detail-body { padding:24px; min-height:200px; line-height:1.7; }
+    .action-btn { border:1px solid #e0e0e0; background:#fff; border-radius:6px; padding:6px 14px; font-size:13px; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+    .action-btn:hover { background:#f5f5f5; text-decoration:none; color:inherit; }
+    .action-btn.primary { background:#e85d8e; border-color:#e85d8e; color:#fff; }
+    .action-btn.primary:hover { background:#d94b7f; }
+    .reply-area { background:#fff; border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,.08); margin:0 16px 16px; padding:20px 24px; }
+</style>
+}
+
+<!-- Action Butonları -->
+<div class="p-15 d-flex align-items-center flex-wrap" style="gap:8px; border-bottom:1px solid #f5f5f5;">
+    <a href="@returnUrl" class="action-btn">
+        <i class="fa fa-arrow-left"></i> Geri
+    </a>
+
+    @if (currentFolder == "sent")
+    {
+        <button class="action-btn" id="trashBtn"
+                style="border-color:#e74c3c;color:#e74c3c;">
+            <i class="fa fa-trash"></i> Çöp Kutusuna Taşı
+        </button>
+    }
+    else if (currentFolder == "trash")
+    {
+        <button class="action-btn" id="untrashBtn"
+                style="border-color:#2ecc71;color:#2ecc71;">
+            <i class="fa fa-undo"></i> Çöp Kutusundan Çıkar
+        </button>
+        <button class="action-btn" id="permanentDeleteBtn"
+                style="border-color:#e74c3c;color:#e74c3c;">
+            <i class="fa fa-times-circle"></i> Kalıcı Olarak Sil
+        </button>
+    }
+    else if (currentFolder == "spam")
+    {
+        <button class="action-btn" id="unspamBtn"
+                style="border-color:#2ecc71;color:#2ecc71;">
+            <i class="fa fa-check"></i> Spam Değil
+        </button>
+        <button class="action-btn" id="trashBtn"
+                style="border-color:#e74c3c;color:#e74c3c;">
+            <i class="fa fa-trash"></i> Çöp Kutusuna Taşı
+        </button>
+    }
+    else
+    {
+        <!-- inbox, starred, category -->
+        <button class="action-btn" id="starBtn"
+                style="border-color:#f1c40f;color:#f1c40f;">
+            <i class="@(Model.IsStarred ? "fas fa-star" : "far fa-star")" id="starIcon"></i>
+            @(Model.IsStarred ? "Yıldızı Kaldır" : "Yıldızla")
+        </button>
+
+        <!-- Mesaja Kategori Ata -->
+        <div class="dropdown">
+            <button class="action-btn dropdown-toggle" data-toggle="dropdown"
+                    style="border-color:#9b59b6;color:#9b59b6;">
+                <i class="fa fa-tag"></i> Kategori Ata
+            </button>
+            <div class="dropdown-menu">
+                @if (categories != null && categories.Any())
+                {
+                    foreach (var cat in categories)
+                    {
+                        <a class="dropdown-item detail-categorize" href="javascript:void(0)"
+                           data-category-id="@cat.CategoryId">
+                            <span class="category-dot" style="background:@(cat.Color ?? "#aaa")"></span>
+                            @cat.Name
+                            @if (Model.CategoryId == cat.CategoryId)
+                            {
+                                <i class="fa fa-check ml-2 text-success"></i>
+                            }
+                        </a>
+                    }
+                    <div class="dropdown-divider"></div>
+                }
+                <a class="dropdown-item detail-categorize" href="javascript:void(0)" data-category-id="0">
+                    <i class="fa fa-times mr-1"></i> Kategoriyi Kaldır
+                </a>
+            </div>
+        </div>
+
+        <!-- Göndericiye Kategori Ata -->
+        <div class="dropdown">
+            <button class="action-btn dropdown-toggle" data-toggle="dropdown"
+                    style="border-color:#1abc9c;color:#1abc9c;">
+                <i class="fa fa-user"></i> Göndericiye Kategori Ata
+            </button>
+            <div class="dropdown-menu">
+                @if (categories != null && categories.Any())
+                {
+                    foreach (var cat in categories)
+                    {
+                        <a class="dropdown-item set-contact-cat" href="javascript:void(0)"
+                           data-category-id="@cat.CategoryId">
+                            <span class="category-dot" style="background:@(cat.Color ?? "#aaa")"></span>
+                            @cat.Name
+                            @if (contactCategoryId == cat.CategoryId)
+                            {
+                                <i class="fa fa-check ml-2 text-success"></i>
+                            }
+                        </a>
+                    }
+                    <div class="dropdown-divider"></div>
+                }
+                <a class="dropdown-item set-contact-cat" href="javascript:void(0)" data-category-id="0">
+                    <i class="fa fa-times mr-1"></i> Kategoriyi Kaldır
+                </a>
+            </div>
+        </div>
+
+        <button class="action-btn" id="spamBtn"
+                style="border-color:#f39c12;color:#f39c12;">
+            <i class="fa fa-ban"></i> Spam
+        </button>
+        <button class="action-btn" id="trashBtn"
+                style="border-color:#e74c3c;color:#e74c3c;">
+            <i class="fa fa-trash"></i> Çöp Kutusuna Taşı
+        </button>
+    }
+</div>
+
+<!-- Mesaj Kartı -->
+<div class="detail-card">
+    <div class="detail-header">
+        <div class="d-flex align-items-center flex-wrap mb-2" style="gap:8px;">
+            @if (!string.IsNullOrEmpty(Model.CategoryName))
+            {
+                <span style="background:@(Model.CategoryColor ?? "#aaa");color:#fff;padding:2px 10px;border-radius:3px;font-size:12px;">
+                    @Model.CategoryName
+                </span>
+            }
+            <h4 class="mb-0">@Model.Subject</h4>
+        </div>
+        <div class="d-flex align-items-center justify-content-between flex-wrap">
+            <div class="d-flex align-items-center" style="gap:12px;">
+                <img src="@Model.SenderImageUrl" alt="user" class="rounded-circle"
+                     width="44" height="44" style="object-fit:cover;">
+                <div>
+                    <div class="font-weight-bold">@Model.SenderFullname</div>
+                    <div class="text-muted" style="font-size:13px;">
+                        <span>Kimden: @Model.SenderEmail</span>
+                        <span class="mx-2">→</span>
+                        <span>Kime: @Model.ReceiverEmail</span>
+                    </div>
+                    @if (contactCategoryId.HasValue && categories != null)
+                    {
+                        var contactCat = categories.FirstOrDefault(c => c.CategoryId == contactCategoryId);
+                        if (contactCat != null)
+                        {
+                            <small>
+                                <span class="category-dot" style="background:@(contactCat.Color ?? "#aaa");width:8px;height:8px;"></span>
+                                <span class="text-muted">@contactCat.Name kategorisinden</span>
+                            </small>
+                        }
+                    }
+                </div>
+            </div>
+            <div class="text-muted" style="font-size:13px;">
+                @Model.SendDate.ToString("dd MMMM yyyy, HH:mm", new System.Globalization.CultureInfo("tr-TR"))
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-body">
+        @Html.Raw(Model.MessageDetail)
+    </div>
+</div>
+
+<!-- Cevapla Alanı -->
+@if (currentFolder != "sent" && currentFolder != "draft" &&
+     currentFolder != "spam"  && currentFolder != "trash")
+{
+    <div class="reply-area">
+        <div class="mb-2 font-weight-bold" style="color:#e85d8e;">
+            <i class="fa fa-reply mr-1"></i> Cevapla — @Model.SenderEmail
+        </div>
+        <textarea id="replyEditor"></textarea>
+        <div class="mt-3 d-flex align-items-center" style="gap:8px;">
+            <button class="action-btn primary" id="sendReplyBtn">
+                <i class="fa fa-paper-plane"></i> Gönder
+            </button>
+            <button class="action-btn" id="saveDraftBtn">
+                <i class="fa fa-save"></i> Taslak Olarak Kaydet
+            </button>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    var messageId    = @Model.MessageId;
+    var senderEmail  = '@Html.Raw(Model.SenderEmail)';
+</script>
+<script>
+    $(document).ready(function () {
+
+        @if (currentFolder != "sent" && currentFolder != "draft" &&
+             currentFolder != "spam"  && currentFolder != "trash")
+        {
+            @:$('#replyEditor').summernote({
+            @:    placeholder: 'Cevabınızı buraya yazın...',
+            @:    tabsize: 2,
+            @:    height: 200,
+            @:    toolbar: [
+            @:        ['style',  ['bold', 'italic', 'underline', 'strikethrough']],
+            @:        ['font',   ['fontname', 'fontsize']],
+            @:        ['color',  ['color']],
+            @:        ['para',   ['ul', 'ol', 'paragraph']],
+            @:        ['insert', ['link']],
+            @:        ['view',   ['fullscreen']]
+            @:    ],
+            @:    fontNames: ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Georgia', 'Tahoma', 'Times New Roman', 'Verdana'],
+            @:    fontSizes: ['8', '9', '10', '11', '12', '14', '16', '18', '24', '36']
+            @:});
+
+            @:setTimeout(function () {
+            @:    var dialog = $('.link-dialog');
+            @:    dialog.find('label').each(function () {
+            @:        var t = $(this).text().trim();
+            @:        if (t.indexOf('Text to display') !== -1) $(this).text('Görüntülenecek metin');
+            @:        if (t.indexOf('URL') !== -1) $(this).text('Bağlantı adresi');
+            @:    });
+            @:    dialog.find('.modal-title').text('Bağlantı Ekle');
+            @:    dialog.find('.note-link-btn').text('Ekle');
+            @:}, 500);
+
+            @:$(document).on('shown.bs.modal', function () {
+            @:    $('.modal:visible')
+            @:        .find('label[for="sn-checkbox-open-in-new-window"]')
+            @:        .closest('.checkbox').remove();
+            @:});
+        }
+
+        // Yıldız
+        $('#starBtn').on('click', function () {
+            $.post('/Message/ToggleStar', { messageId: messageId })
+                .done(function (res) {
+                    if (res.success) {
+                        if (res.isStarred) {
+                            $('#starBtn').html('<i class="fas fa-star" id="starIcon"></i> Yıldızı Kaldır');
+                        } else {
+                            $('#starBtn').html('<i class="far fa-star" id="starIcon"></i> Yıldızla');
+                        }
+                        $('#starBtn').css({ 'border-color': '#f1c40f', 'color': '#f1c40f' });
+                    }
+                });
+        });
+
+        function singleAction(action, confirmMsg) {
+            if (confirmMsg && !confirm(confirmMsg)) return;
+            $.ajax({
+                url: '/Message/BulkAction',
+                method: 'POST',
+                traditional: true,
+                data: { messageIds: [messageId], action: action },
+                success: function (res) {
+                    if (res.success) window.location.href = '@Html.Raw(returnUrl)';
+                    else alert(res.message || 'Hata oluştu.');
+                }
+            });
+        }
+
+        $('#trashBtn').on('click',   function () { singleAction('trash',   'Çöp kutusuna taşınsın mı?'); });
+        $('#untrashBtn').on('click', function () { singleAction('untrash', null); });
+        $('#spamBtn').on('click',    function () { singleAction('spam',    'Spam olarak işaretlensin mi?'); });
+        $('#unspamBtn').on('click',  function () { singleAction('unspam',  null); });
+
+        // Kalıcı sil
+        $('#permanentDeleteBtn').on('click', function () {
+            if (!confirm('Bu mesaj kalıcı olarak silinecek ve geri alınamaz. Emin misiniz?')) return;
+            $.ajax({
+                url: '/Message/PermanentDelete',
+                method: 'POST',
+                traditional: true,
+                data: { messageIds: [messageId] },
+                success: function (res) {
+                    if (res.success) window.location.href = '@Html.Raw(returnUrl)';
+                    else alert(res.message || 'Hata oluştu.');
+                }
+            });
+        });
+
+        // Mesaja kategori ata
+        $(document).on('click', '.detail-categorize', function () {
+            $.ajax({
+                url: '/Message/BulkAction',
+                method: 'POST',
+                traditional: true,
+                data: { messageIds: [messageId], action: 'categorize', categoryId: $(this).data('category-id') },
+                success: function (res) { if (res.success) location.reload(); }
+            });
+        });
+
+        // Göndericiye kategori ata
+        $(document).on('click', '.set-contact-cat', function () {
+            var catId = $(this).data('category-id');
+            $.post('/Message/SetContactCategory', {
+                contactEmail: senderEmail,
+                categoryId:   catId
+            }).done(function (res) {
+                if (res.success) location.reload();
+                else alert(res.message || 'Hata oluştu.');
+            });
+        });
+
+        // Cevap gönder
+        $('#sendReplyBtn').on('click', function () {
+            var content = $('#replyEditor').summernote('code');
+            if (!content || content === '<p><br></p>') { alert('Cevap boş olamaz.'); return; }
+            $.post('/Message/ReplyMessage', {
+                originalMessageId: messageId,
+                content: content,
+                isDraft: false
+            }).done(function (res) {
+                if (res.success) {
+                    alert('Mesaj gönderildi.');
+                    window.location.href = '@Html.Raw(returnUrl)';
+                } else {
+                    alert(res.message || 'Hata oluştu.');
+                }
+            });
+        });
+
+        // Taslak kaydet
+        $('#saveDraftBtn').on('click', function () {
+            var content = $('#replyEditor').summernote('code');
+            $.post('/Message/ReplyMessage', {
+                originalMessageId: messageId,
+                content: content,
+                isDraft: true
+            }).done(function (res) {
+                if (res.success) alert('Taslak kaydedildi.');
+                else alert(res.message || 'Hata oluştu.');
+            });
+        });
+    });
+</script>
+}

@@ -2,14 +2,41 @@
 
 namespace IdentityEmail.Models
 {
-    public class CustomIdentityValidator:IdentityErrorDescriber
+    public class CustomIdentityValidator : IdentityErrorDescriber
     {
+        public override IdentityError DuplicateUserName(string userName)
+        {
+            return new IdentityError
+            {
+                Code = "DuplicateUserName",
+                Description = "Bu kullanıcı adı zaten alınmış."
+            };
+        }
+
+        public override IdentityError InvalidEmail(string email)
+        {
+            return new IdentityError
+            {
+                Code = "InvalidEmail",
+                Description = "Geçerli bir email adresi giriniz."
+            };
+        }
+
+        public override IdentityError DuplicateEmail(string email)
+        {
+            return new IdentityError
+            {
+                Code = "DuplicateEmail",
+                Description = "Bu email adresi zaten kayıtlı."
+            };
+        }
+
         public override IdentityError PasswordTooShort(int length)
         {
             return new IdentityError
             {
                 Code = "PasswordTooShort",
-                Description = $"Parola en az 6 karakter olmalıdır."
+                Description = $"Parola en az {length} karakter olmalıdır."
             };
         }
 
@@ -40,7 +67,7 @@ namespace IdentityEmail.Models
             };
         }
 
-        override public IdentityError PasswordRequiresNonAlphanumeric()
+        public override IdentityError PasswordRequiresNonAlphanumeric()
         {
             return new IdentityError
             {
