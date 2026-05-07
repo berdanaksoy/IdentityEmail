@@ -209,7 +209,7 @@ Modern tasarımlı kayıt, giriş ve e-posta doğrulama sayfaları.
 
 1. **Repository'yi Klonlayın**
     ```bash
-    git clone https://github.com/berdanaksoy/MailMate.git
+    git clone https://github.com/berdanaksoy/IdentityEmail.git
     cd MailMate
     ```
 
